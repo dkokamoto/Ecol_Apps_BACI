@@ -25,7 +25,8 @@ library("fields")
 library("cowplot")
 
 ### read in raw output and summaries
-### download from google drive link
+### download the large file from google drive link below
+## https://drive.google.com/file/d/1-FIVbGKsh1y4IUK_0BH-t_gydH1n1oWJ/view?usp=sharing
 out <- read.csv("runs_output_full.csv") 
 
 ### summarize data across groups
@@ -266,7 +267,7 @@ errorplot <- ggplot(aes(x= as.numeric(as.character(domain)),
 plot_grid(heatmap,errorplot,ncol= 1,align= "v",axis= "lr")
 #dev.off()
 
-plot_groups <- read.csv("3_Output/runs_output_groups.csv")
+plot_groups <- read.csv("~/Dropbox/DanO_DOI_Partnership/DOI_Impacts/3_Output/runs_output_groups.csv")
 plot_groups <- plot_groups%>%
   mutate(incl= 0.15)%>%
   filter(severity!= "4x impact")
@@ -679,7 +680,7 @@ Pwr_vs_FP
 #dev.off()
 
 ### Informedness Plot ###
-inf_data <- read.csv("3_Output/cum_informedness.csv")
+inf_data <- read.csv("Output/cum_informedness.csv")
 
 head(inf_data)
 
