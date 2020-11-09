@@ -40,7 +40,7 @@ source("Code/Functions.R")
 ########################################
 
 #read in ecological data
-allData = read.csv("1_Data/Species_Data.csv")%>%
+allData = read.csv("Data/Species_Data.csv")%>%
   mutate(density=count/totalArea)
 
 ### species of interest
@@ -101,16 +101,17 @@ file_nums <- sapply(file_list,read_file)
 ### NOTE: THIS WILL TAKE A SUBSTANTIAL AMOUNT OF TIME
 
 for(i in 1:length(files)){
-  hit_list = read.csv(paste0("1_Data/",files[i]))[,-3]	
+  i=1
+  hit_list = read.csv(paste0("Data/",files[i]))[,-3]	
   hit_df$index <- as.vector(replicate(nrow(hit_df)/sample_size,sample(1:9999,sample_size)))
   id_list <- rows.to.list(hit_df)
-  ### create groups for saving snippets of 400 at a time as the simulation runs
+  ### create groups for saving 400 snippets at a time as the simulation runs
   groups <- split(1:length(id_list), cut_number(1:length(id_list), n=400))
   ranges <- sapply(groups,function(x) paste(range(x),collapse="-"))
   groups <- groups[!(ranges%in%file_nums)]
   ap_fun <- function(x){
     out <- ldply(id_list[x],hit_fun)
-    saveRDS(out,file= paste0("3_Output/hit_analysis_",paste(range(x),collapse="-"),"_",files[i],".rds"))
+    saveRDS(out,file= paste0("Output/hit_analysis_",paste(range(x),collapse="-"),"_",files[i],".rds"))
     return(out)
   }
   out <- mclapply(groups,ap_fun,mc.cores= n.cores,mc.silent = TRUE)

@@ -100,7 +100,7 @@ summaryRprof(tmp)
 #  return(a)
 #}
 
-### create groups for saving snippets of 400 at a time as the simulation runs
+### create groups for saving 400 snippets at a time as the simulation runs
 ### we are only focused on impacting a quarter of the sites for these groups
 groups <- split(1:length(id_list), cut_number(1:length(id_list), n=400))
 ranges <- sapply(groups,function(x) paste(range(x),collapse="-"))
