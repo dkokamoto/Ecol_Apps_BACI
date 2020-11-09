@@ -30,15 +30,6 @@ library("glmmTMB")
 ### load necessary functions 
 source("Code/Functions.R")
 
-########################################
-### scenarios to run 
-### sets of impacts: 0,50,80
-### all species
-### quarter hit, quarter hit shuffle 
-### test cases - quarter hit shuffle 
-### with zero severity - FALSE POSITIVES
-########################################
-
 #read in ecological data
 allData = read.csv("Data/Species_Data.csv")%>%
   mutate(density=count/totalArea)
@@ -53,7 +44,10 @@ min_props= c(0.15,0.5)
 sample_size = 1000
 
 ### severities to consider
-severities = c(0.8,0.5,0,-.5,-1)
+# 80% reduction, 50% reduction, no change, 50% increase, 100% increase
+severities = c(0.8,0.5,0,-.5,-1) 
+
+# alternative for the gridded plots 
 # severities = c(rev(seq(0,0.75,by= 0.075)),1/(1-seq(.075,0.75,by= 0.075))-1)
 
 ### cores to use
@@ -101,7 +95,6 @@ file_nums <- sapply(file_list,read_file)
 ### NOTE: THIS WILL TAKE A SUBSTANTIAL AMOUNT OF TIME
 
 for(i in 1:length(files)){
-  i=1
   hit_list = read.csv(paste0("Data/",files[i]))[,-3]	
   hit_df$index <- as.vector(replicate(nrow(hit_df)/sample_size,sample(1:9999,sample_size)))
   id_list <- rows.to.list(hit_df)
