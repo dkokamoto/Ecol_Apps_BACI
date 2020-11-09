@@ -1,0 +1,40 @@
+taxa_name,species,taxa_group,num_2
+Macrocystis,1,algae,1
+Purple urchin,2,mobile Invert,8
+Red urchin,3,mobile Invert,9
+Pterygophora,4,algae,2
+Pycnopodia,5,mobile Invert,10
+Haliotis rufescens,6,mobile Invert,11
+Haliotis corrugata,7,mobile Invert,12
+Lithopoma,8,mobile Invert,13
+Eisenia,9,algae,3
+P. giganteus,10,mobile Invert,14
+Patiria,11,mobile Invert,15
+Megathura,12,mobile Invert,16
+P. parvimensis,13,mobile Invert,17
+Megastraea,14,mobile Invert,18
+Laminaria,15,algae,4
+Desmarestia,16,algae,5
+Cystoseira,17,algae,6
+Corynactis,18,sessile invert,21
+Balanophyllia,19,sessile invert,22
+Astrangia,20,sessile invert,23
+Diopatra,21,sessile invert,24
+Phragmatopoma,22,sessile invert,25
+Serpulorbis,23,sessile invert,26
+Pachythyone,24,mobile Invert,19
+Blacksmith,25,fish,28
+Blackeye Goby,26,fish,29
+Black Surfperch,27,fish,30
+Striped Surfperch,28,fish,31
+Opaleye,29,fish,32
+Rock wrasse,30,fish,33
+Garibaldi,31,fish,34
+Blue-banded_Goby,32,fish,35
+Senorita,33,fish,36
+Kelp Bass,34,fish,37
+Pile Perch,35,fish,38
+Kelp Rockfish,36,fish,39
+Blue Rockfish,37,fish,40
+Olive Rockfish,38,fish,41
+California Sheephead,39,fish,42
