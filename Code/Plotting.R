@@ -25,6 +25,7 @@ library("fields")
 library("cowplot")
 
 ### read in raw output and summaries
+### download from google drive link
 out <- read.csv("runs_output_full.csv") 
 
 ### summarize data across groups

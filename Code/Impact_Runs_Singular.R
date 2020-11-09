@@ -40,7 +40,7 @@ source("2_Code/Functions.R")
 ########################################
 
 #read in ecological data
-allData = read.csv("1_Data/Species_Data.csv")%>%
+allData = read.csv("Data/Species_Data.csv")%>%
   mutate(density=count/totalArea)
 
 ### species of interest
@@ -449,10 +449,10 @@ hit_fun <- function(x, power= FALSE,plot= FALSE,pred_data= pred_data){
 }
 
 #read in hitList for impacted sites (there are several of these that we will use but this is probably the main one)
-files = paste0(list.files(pattern= "domain",path= "1_Data"))[c(1:4)]
+files = paste0(list.files(pattern= "domain",path= "Data"))[c(1:4)]
 
 ### test function
-hit_list = read.csv(paste0("1_Data/",files[1]))[,-3]	
+hit_list = read.csv(paste0("Data/",files[1]))[,-3]	
 hit_df$index <- as.vector(replicate(nrow(hit_df)/sample_size,sample(unique(hit_list$indexNo),sample_size)))
 id_list <- rows.to.list(hit_df)
 
@@ -467,13 +467,13 @@ read_file <- function(x) {
   a<- gsub("hit_analysis_|_domain_|R[[:digit:]]+|[a-z]+|_|.csv.rds","",x)
   return(a)
 }
-#file_list <- list.files(pattern="\\.rds",path= "3_Output")
+#file_list <- list.files(pattern="\\.rds",path= "Output")
 file_list= NULL
 file_nums <- sapply(file_list,read_file)
 
 ### 
 for(i in 1:length(files)){
-  hit_list = read.csv(paste0("1_Data/",files[i]))[,-3]	
+  hit_list = read.csv(paste0("Data/",files[i]))[,-3]	
   hit_df$index <- as.vector(replicate(nrow(hit_df)/sample_size,sample(1:9999,sample_size)))
   id_list <- rows.to.list(hit_df)
   groups <- split(1:length(id_list), cut_number(1:length(id_list), n=400))
@@ -481,21 +481,21 @@ for(i in 1:length(files)){
   groups <- groups[!(ranges%in%file_nums)]
   ap_fun <- function(x){
     out <- ldply(id_list[x],hit_fun)
-    saveRDS(out,file= paste0("3_Output/hit_analysis_",paste(range(x),collapse="-"),"_",files[i],".rds"))
+    saveRDS(out,file= paste0("Output/hit_analysis_",paste(range(x),collapse="-"),"_",files[i],".rds"))
     return(out)
   }
   out <- mclapply(groups,ap_fun,mc.cores= n.cores,mc.silent = TRUE)
 }
 #
 
-file_list <- list.files(pattern="\\.rds",path= "3_Output")
+file_list <- list.files(pattern="\\.rds",path= "Output")
 read_RDS <- function(x) {
-  a <- readRDS(paste0("3_Output/",x))
+  a <- readRDS(paste0("Output/",x))
   a$domain <- gsub("hit_analysis_[[:digit:]]+-[[:digit:]]+||_domain_|R|-|.csv.rds","",x)
   return(a)
 }
 
-file_list <- list.files(pattern="\\.rds",path= "3_Output")
+file_list <- list.files(pattern="\\.rds",path= "Output")
 
 ###
 b <- ldply(file_list,read_RDS)

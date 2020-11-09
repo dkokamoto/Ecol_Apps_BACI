@@ -29,7 +29,7 @@ library("tidyr")
 library("glmmTMB")
 
 ### load necessary functions
-source("2_Code/Functions.R")
+source("Code/Functions.R")
 
 ########################################
 ### scenarios to run 
@@ -42,7 +42,7 @@ source("2_Code/Functions.R")
 
 ### read in ecological data and define groups
 ### groups can be defined as taxa
-allData = read.csv("1_Data/Species_Data.csv")%>%
+allData = read.csv("Data/Species_Data.csv")%>%
   dplyr::rename(GROUP_CODE=NEW_CODE)%>%
   mutate(density=count/totalArea,
          group=ifelse(GROUP_CODE%in%c(1,4,9,15),1,
@@ -85,10 +85,10 @@ pred_data <- data.frame(totalArea= 1,density= 1,count= 1,postImpact= factor(c(0,
                         Impact=factor(c(1),levels= c(0,1)),BACI= factor(c(0,1)),new_count= 1,INDID=1)
 
 ### read in hitList for impacted sites (there are several of these that we will use but this is probably the main one)
-files = paste0(list.files(pattern= "domain_quart",path= "1_Data"))
+files = paste0(list.files(pattern= "domain_quart",path= "Data"))
 
 ### test function
-hit_list = read.csv("1_Data/domain_quart.csv")[,-3]	
+hit_list = read.csv("Data/domain_quart.csv")[,-3]	
 hit_df$index <- as.vector(replicate(nrow(hit_df)/sample_size,sample(unique(hit_list$indexNo),sample_size)))
 id_list <- rows.to.list(hit_df)
 
@@ -108,14 +108,14 @@ test
 ### create groups for saving snippets of 400 at a time as the simulation runs
 groups <- split(1:length(id_list), cut_number(1:length(id_list), n=400))
 ranges <- sapply(groups,function(x) paste(range(x),collapse="-"))
-file_list <- list.files(pattern="hit_analysis_group",path= "3_Output")
+file_list <- list.files(pattern="hit_analysis_group",path= "Output")
 file_nums <- sapply(file_list,read_file)
 groups <- groups[!(ranges%in%file_nums)]
 
 ### create a wrapper to run the function and save the collection 
 ap_fun <- function(x){
   out <- ldply(id_list[x],hit_fun)
-  saveRDS(out,file= paste0("3_Output/hit_analysis_group_",paste(range(x),collapse="-"),".rds"))
+  saveRDS(out,file= paste0("Output/hit_analysis_group_",paste(range(x),collapse="-"),".rds"))
   return(out)
 }
 
@@ -124,9 +124,9 @@ out <- mclapply(groups,ap_fun,mc.cores= n.cores,mc.silent = TRUE,mc.preschedule=
 #
 
 ### read the snippets and compile
-file_list <- list.files(pattern="\\hit_analysis_group_",path= "3_Output")
+file_list <- list.files(pattern="\\hit_analysis_group_",path= "Output")
 read_RDS <- function(x) {
-  runs <- readRDS(paste0("3_Output/",x))
+  runs <- readRDS(paste0("Output/",x))
   runs$domain <- gsub("hit_analysis_group_[[:digit:]]+-[[:digit:]]+||_domain_|R|-|.csv.rds","",x)
   return(runs)
 }
