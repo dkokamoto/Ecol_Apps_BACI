@@ -1,3 +1,14 @@
+###########################################################
+###  Code for Rassweiler et al. (2021) Ecol. Appl. 
+###  Authors: D.K. Okamoto, A. Rassweiler
+###  Last Updated: May, 2018 (commented Nov. 2020)  
+###  
+###  
+###  **CAUTION: code is not designed for efficiency or for
+###  other applications, but for this paper alone!**
+###########################################################
+
+###  Code provided here is for generic Functions ---- 
 
 ### convert rows to list
 rows.to.list <- function( df ) {
@@ -19,8 +30,9 @@ withWarnings <- function (expr)
   list(Value = retval, Warnings = warnings) 
 } 
 
-### ungrouped function 
+### ungrouped function ---- 
 hit_fun <- function(x, power= FALSE,plot= FALSE,pred_data= pred_data){
+  
   id_data <- data.frame(t(x))
   IY= sample(1990:2005,1)
   w.list=NA
@@ -372,9 +384,8 @@ hit_fun <- function(x, power= FALSE,plot= FALSE,pred_data= pred_data){
   }
 }
 
-### grouped function
+### grouped function ---- 
 hit_fun_groups <- function(x, power= FALSE,plot= FALSE,pred_data= pred_data){
-  x =id_list[[10000]]
   id_data <- data.frame(t(x))
   IY= sample(1990:2005,1)
   w.list=NA
@@ -415,10 +426,12 @@ hit_fun_groups <- function(x, power= FALSE,plot= FALSE,pred_data= pred_data){
     newprob <- subset(newData,postImpact==1&Impact==1)$count*(1-id_data$severity)
     impdata <- floor(newprob)+sapply(newprob - floor(newprob ),function(x) rbinom(1,1,x))
     
+    ### format data for analysis
     newData <-  newData%>%
       mutate(new_count=ifelse(postImpact==1&Impact==1,impdata,count))%>%
       data.frame()
     
+    ### create IDs for overdispersion and groupings
     newData$INDID <- 1:nrow(newData)
     newData$time <- factor(newData$YEAR)
     newData$SITE <- factor(newData$SITE)

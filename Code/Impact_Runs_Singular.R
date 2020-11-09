@@ -27,7 +27,7 @@ library("msm")
 library("tidyr")
 library("glmmTMB")
 
-### load necessary functions
+### load necessary functions 
 source("Code/Functions.R")
 
 ########################################
@@ -38,7 +38,6 @@ source("Code/Functions.R")
 ### test cases - quarter hit shuffle 
 ### with zero severity - FALSE POSITIVES
 ########################################
-
 
 #read in ecological data
 allData = read.csv("1_Data/Species_Data.csv")%>%
@@ -60,14 +59,6 @@ severities = c(0.8,0.5,0,-.5,-1)
 ### cores to use
 n.cores= 20
 
-### KEY OUTPUT: 
-### significance of impact 
-### effect size for impact 
-### diagnostics (overdispersion/zero-inflation fit)
-### other error codes
-### no impact or control sites with observations
-### power given sample size (?)
-
 ### dataframe of species, severity, and index
 hit_df <- expand.grid(species= species_list,
                       severity= severities,
@@ -86,12 +77,14 @@ hit_list = read.csv(paste0("Data/",files[1]))[,-3]
 hit_df$index <- as.vector(replicate(nrow(hit_df)/sample_size,sample(unique(hit_list$indexNo),sample_size)))
 id_list <- rows.to.list(hit_df)
 
-### profile function for efficiency
+### profile function for efficiency using replicate row # 10,000 (for example)
 Rprof(tmp <- tempfile())
-a <- system.time(hit_fun(id_list[[10000]],plot=FALSE))
+system.time(test <- hit_fun(id_list[[10000]],plot=FALSE))
 Rprof()
 summaryRprof(tmp)
 
+### BELOW IS THE CODE TO RUN THE SIMULATIONS IN FULL ----
+### NOTE: THIS WILL TAKE A SUBSTANTIAL AMOUNT OF TIME!
 
 read_file <- function(x) {
   a<- gsub("hit_analysis_|_domain_|R[[:digit:]]+|[a-z]+|_|.csv.rds","",x)
@@ -104,7 +97,8 @@ file_list= NULL
 file_nums <- sapply(file_list,read_file)
 
 ### run the function in parallel - will save each snippet as it runs in case the process hangs
-### loop over different impact files
+### loop over the different mpact configurations, running in parallel within each
+### NOTE: THIS WILL TAKE A SUBSTANTIAL AMOUNT OF TIME
 
 for(i in 1:length(files)){
   hit_list = read.csv(paste0("1_Data/",files[i]))[,-3]	

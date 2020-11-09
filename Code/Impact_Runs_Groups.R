@@ -41,7 +41,9 @@ source("Code/Functions.R")
 ########################################
 
 ### read in ecological data and define groups
-### groups can be defined as taxonomic groupings (as below) or as "informedness" rank
+### groups can be defined as taxonomic groupings (as below) 
+### or as "informedness" rank (using "Output/informedness_table.csv")
+
 allData = read.csv("Data/Species_Data.csv")%>%
   mutate(density=count/totalArea,
          group=ifelse(NEW_CODE%in%c(1,4,9,15),1,
@@ -62,7 +64,7 @@ sample_size = 1000
 severities = c(0.8,0.5,0)
 
 ### cores to use
-n.cores= 2
+n.cores= 20
 
 ### dataframe of species, severity, and index
 hit_df <- expand.grid(group= group_list,
@@ -83,13 +85,14 @@ hit_list = read.csv("Data/domain_quart.csv")[,-3]
 hit_df$index <- as.vector(replicate(nrow(hit_df)/sample_size,sample(unique(hit_list$indexNo),sample_size)))
 id_list <- rows.to.list(hit_df)
 
-### profile function for efficiency
+### profile function for efficiency using replicate row # 10,000 (for example)
 Rprof(tmp <- tempfile())
 system.time(test <- hit_fun_groups(id_list[[10000]],plot=FALSE))
 Rprof()
 summaryRprof(tmp)
-test
 
+### BELOW IS THE CODE TO RUN THE SIMULATIONS IN FULL ----
+### NOTE: THIS WILL TAKE A SUBSTANTIAL AMOUNT OF TIME!
 
 ### run if you don't want to overwrite existing files because of an interruption
 #read_file <- function(x) {
