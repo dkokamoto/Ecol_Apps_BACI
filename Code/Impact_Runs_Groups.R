@@ -41,14 +41,13 @@ source("Code/Functions.R")
 ########################################
 
 ### read in ecological data and define groups
-### groups can be defined as taxa
+### groups can be defined as taxa or as "informedness" rank
 allData = read.csv("Data/Species_Data.csv")%>%
-  dplyr::rename(GROUP_CODE=NEW_CODE)%>%
   mutate(density=count/totalArea,
-         group=ifelse(GROUP_CODE%in%c(1,4,9,15),1,
-                      ifelse(GROUP_CODE%in%c(2,3,5,10,11,13),2,
-                             ifelse(GROUP_CODE%in%c(8,12,14),3,
-                                    ifelse(GROUP_CODE%in%c(25:39),4,5)))))
+         group=ifelse(NEW_CODE%in%c(1,4,9,15),1,
+                      ifelse(NEW_CODE%in%c(2,3,5,10,11,13),2,
+                             ifelse(NEW_CODE%in%c(8,12,14),3,
+                                    ifelse(NEW_CODE%in%c(25:39),4,5)))))
 
 ### species of interest
 group_list= c(1:4)
@@ -64,14 +63,6 @@ severities = c(0.8,0.5,0)
 
 ### cores to use
 n.cores= 2
-
-### KEY OUTPUT: 
-### significance of impact 
-### effect size for impact 
-### diagnostics (overdispersion/zero-inflation fit)
-### other error codes
-### no impact or control sites with observations
-### power given sample size (?)
 
 ### dataframe of species, severity, and index
 hit_df <- expand.grid(group= group_list,
@@ -114,7 +105,7 @@ groups <- groups[!(ranges%in%file_nums)]
 
 ### create a wrapper to run the function and save the collection 
 ap_fun <- function(x){
-  out <- ldply(id_list[x],hit_fun)
+  out <- ldply(id_list[x],hit_fun_groups)
   saveRDS(out,file= paste0("Output/hit_analysis_group_",paste(range(x),collapse="-"),".rds"))
   return(out)
 }
