@@ -72,7 +72,7 @@ out_sum <- out%>%
   data.frame()
 
 ### read and merge species codes
-codes <- read.csv("1_Data/Species_Codes.csv")
+codes <- read.csv("Data/Species_Codes.csv")
 out_sum <- left_join(out_sum,codes,by= "species")
 out_sum <- out_sum%>%
   drop.levels()
@@ -225,48 +225,6 @@ errorplot <- ggplot(aes(x= as.numeric(as.character(domain)),
 plot_grid(heatmap,errorplot,ncol= 1,align= "v",axis= "lr")
 #dev.off()
 
-### relative error for BSP and Macro
-error_dat <-out%>%
-  filter(leffect2>(-5)&leffect2<5&severity==0.8&species%in%c(1,27))%>%
-  mutate(species=ifelse(species==1,"Macrocystis","Black Surfperch"))
-
-errorplot <- ggplot(aes(x= as.numeric(as.character(domain)),
-  y=(leffect2-log(1-severity))/(log(1-severity))),
-  data= error_dat)+
-  stat_summary(
-    fun.ymin = function(z) { quantile(z,0.95) },
-    fun.ymax = function(z) { quantile(z,0.05) },
-    fun.y = median, geom= "ribbon",fill= "grey60")+
-   stat_summary(
-    fun.ymin = function(z) { quantile(z,0.75) },
-    fun.ymax = function(z) { quantile(z,0.25) },
-    fun.y = median, geom= "ribbon",fill= "grey30")+
-   stat_summary(
-    fun.y = median, geom= "line")+
-  coord_cartesian(ylim= c(-1.5,1.5),expand= c(0,0))+
-   scale_x_continuous(breaks= c(25,50,75,100),expand= c(0,0),
-                     labels= c("25\n(9%)",
-                               "50\n(20%)",
-                               "75\n(55%)",
-                               "100\n(79%)"))+
-  facet_grid(~species)+
-  geom_abline(slope=0,linetype= "dotted")+
-  ylab("Relative Error")+
-  xlab("Impact Radius (km)")+
-   theme(axis.text.y= element_text(hjust=1),
-          legend.position= "bottom",
-          strip.text= element_blank(),
-          legend.background = element_blank(),
-          legend.key.width= unit(2,"cm"),
-          strip.background=element_blank(),
-          panel.background= element_blank(),
-          plot.background= element_blank(),
-          panel.border= element_rect(colour= "black",fill=NA))
-
-#pdf(width=8,height= 6,file="../4_Figures/errorplot.pdf")
-plot_grid(heatmap,errorplot,ncol= 1,align= "v",axis= "lr")
-#dev.off()
-
 plot_groups <- read.csv("~/Dropbox/DanO_DOI_Partnership/DOI_Impacts/3_Output/runs_output_groups.csv")
 plot_groups <- plot_groups%>%
   mutate(incl= 0.15)%>%
@@ -303,14 +261,8 @@ plot_dat$taxa_name <- factor(
 )
 
 ### read in informedness rank
-latin_binom <-   read.csv("3_Output/latin_binomial_table.csv")
-
-inf_rank <- read.csv("/Users/Dan/Informedness_Rank.csv")%>%
-  mutate(taxa_name=Species)%>%
-  join(latin_binom)%>%
-  filter(!(taxa_name%in%c("Blue Rockfish","Blackeye Goby","Striped Surfperch",
-                          "Pachythyone","Haliotis corrugata","Haliotis rufescens","Rock wrasse")))%>%
-  mutate(rank= rank(Informedness))
+latin_binom <-   read.csv("Output/latin_binomial_table.csv")
+inf_rank <- read.csv("Output/informedness_table.csv")
 
 ### join and sort by informedness
 plot_dat <- join(plot_dat,inf_rank)%>%
@@ -318,11 +270,13 @@ plot_dat <- join(plot_dat,inf_rank)%>%
          binomial= as.character(binomial))%>%
   mutate(taxa_name= ifelse(taxa_name%in%c("all algae","all mobile Inverts","all fish","all sessile inverts"),taxa_name,binomial))
 
-
+levels(plo)
 orders <- unique(plot_dat[,c("taxa_name","rank")])%>%
          mutate(rank= ifelse(is.na(rank),row_number(),rank))%>%
   arrange(rank)
 
+plot_dat$variable = factor(plot_dat$variable, levels= c("significant & negative","significant & positive", 
+                                                        "not significant",  "no convergence","insufficient data"))    
 plot_dat$taxa_name = factor(plot_dat$taxa_name,levels= orders$taxa_name)
 
 
@@ -344,7 +298,7 @@ impact_by_spp <- ggplot(aes(taxa_name,-value),
   guides(fill= guide_legend(ncol= 1),shape=guide_legend(ncol=1))+
   scale_y_continuous(breaks= seq(-1,0,by = 0.1),
                      labels= c(0,"",0.2,"",0.4,"",0.6,"",0.8,"",""),expand= c(0,0))+
-  ylab("realized detection probability")+
+  ylab("outcome frequency")+
   scale_shape_manual(values= c(9,22))+
   scale_fill_manual(values= c(rev(brewer.pal(5,"RdYlBu"))))+
   theme(strip.background= element_blank(),
@@ -636,7 +590,7 @@ p2 <- ggplot(aes(ctl_resp,ps+pp),data=sub5)+
 
 #### type II vs type I error rates
 
-out2 <- read.csv("3_Output/runs_output_summary_full.csv")
+out2 <- read.csv("Output/output_summary_full.csv")
 
 a <-  out2%>%
   filter(severity%in%c(0.8)&domain=="quart")%>%
