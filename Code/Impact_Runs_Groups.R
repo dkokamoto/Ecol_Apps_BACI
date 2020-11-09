@@ -41,7 +41,7 @@ source("Code/Functions.R")
 ########################################
 
 ### read in ecological data and define groups
-### groups can be defined as taxa or as "informedness" rank
+### groups can be defined as taxonomic groupings (as below) or as "informedness" rank
 allData = read.csv("Data/Species_Data.csv")%>%
   mutate(density=count/totalArea,
          group=ifelse(NEW_CODE%in%c(1,4,9,15),1,
@@ -69,13 +69,13 @@ hit_df <- expand.grid(group= group_list,
                       severity= severities,
                       min_prop= min_props)
 
+### replicate rows of the dataframe by sample size
 hit_df <- hit_df[rep(1:nrow(hit_df),each= sample_size),]
-
 
 pred_data <- data.frame(totalArea= 1,density= 1,count= 1,postImpact= factor(c(0,1)),
                         Impact=factor(c(1),levels= c(0,1)),BACI= factor(c(0,1)),new_count= 1,INDID=1)
 
-### read in hitList for impacted sites (there are several of these that we will use but this is probably the main one)
+### read in hitList for impacted sites
 files = paste0(list.files(pattern= "domain_quart",path= "Data"))
 
 ### test function
@@ -90,13 +90,15 @@ Rprof()
 summaryRprof(tmp)
 test
 
-### run if you don't want to overwrite existing files that have been saved
+
+### run if you don't want to overwrite existing files because of an interruption
 #read_file <- function(x) {
 #  a<- gsub("hit_analysis_|_domain_|R[[:digit:]]+|[a-z]+|_|.csv.rds","",x)
 #  return(a)
 #}
 
 ### create groups for saving snippets of 400 at a time as the simulation runs
+### we are only focused on impacting a quarter of the sites for these groups
 groups <- split(1:length(id_list), cut_number(1:length(id_list), n=400))
 ranges <- sapply(groups,function(x) paste(range(x),collapse="-"))
 file_list <- list.files(pattern="hit_analysis_group",path= "Output")
@@ -110,9 +112,8 @@ ap_fun <- function(x){
   return(out)
 }
 
-### run the function in parallel
+### run the function in parallel - will save each snippet as it runs in case the process hangs
 out <- mclapply(groups,ap_fun,mc.cores= n.cores,mc.silent = TRUE,mc.preschedule= FALSE)
-#
 
 ### read the snippets and compile
 file_list <- list.files(pattern="\\hit_analysis_group_",path= "Output")
@@ -122,6 +123,3 @@ read_RDS <- function(x) {
   return(runs)
 }
 runs_full <- ldply(file_list,read_RDS)
-
-### NOT RUN
-#write.csv(b,"runs_output_groups.csv",row.names= F)

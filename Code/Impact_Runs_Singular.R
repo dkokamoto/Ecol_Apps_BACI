@@ -73,31 +73,10 @@ hit_df <- expand.grid(species= species_list,
                       severity= severities,
                       min_prop= min_props)
 
+### replicate rows of the dataframe by sample size
 hit_df <- hit_df[rep(1:nrow(hit_df),each= sample_size),]
 
-rows.to.list <- function( df ) {
-  ll<-apply(df,1,list)
-  ll<-lapply(ll,unlist)
-}
-
-zeropois <- function(lambda) ifelse(lambda==0,0,rpois(1,lambda))
-#Species codes we need to evaluate 
-#1-12, 16-24 (point contact), 25-39
-
-## warnings 
-withWarnings <- function (expr) 
-{ 
-  warnings <- character() 
-  retval <- withCallingHandlers(expr, warning = function(ex) { 
-    warnings <<- c(warnings, conditionMessage(ex)) 
-    invokeRestart("muffleWarning") 
-  }) 
-  list(Value = retval, Warnings = warnings) 
-} 
-
 pred_data <- data.frame(totalArea= 1,density= 1,count= 1,postImpact= factor(c(0,1)),Impact=factor(c(1),levels= c(0,1)),BACI= factor(c(0,1)),new_count= 1,INDID=1)
-
-
 
 #read in hitList for impacted sites (there are several of these that we will use but this is probably the main one)
 files = paste0(list.files(pattern= "domain",path= "Data"))[c(1:4)]
@@ -113,20 +92,25 @@ a <- system.time(hit_fun(id_list[[10000]],plot=FALSE))
 Rprof()
 summaryRprof(tmp)
 
-### run if you don't want to overwrite
+
 read_file <- function(x) {
   a<- gsub("hit_analysis_|_domain_|R[[:digit:]]+|[a-z]+|_|.csv.rds","",x)
   return(a)
 }
+
+### run if you don't want to overwrite because of an interruption
 #file_list <- list.files(pattern="\\.rds",path= "3_Output")
 file_list= NULL
 file_nums <- sapply(file_list,read_file)
 
-### 
+### run the function in parallel - will save each snippet as it runs in case the process hangs
+### loop over different impact files
+
 for(i in 1:length(files)){
   hit_list = read.csv(paste0("1_Data/",files[i]))[,-3]	
   hit_df$index <- as.vector(replicate(nrow(hit_df)/sample_size,sample(1:9999,sample_size)))
   id_list <- rows.to.list(hit_df)
+  ### create groups for saving snippets of 400 at a time as the simulation runs
   groups <- split(1:length(id_list), cut_number(1:length(id_list), n=400))
   ranges <- sapply(groups,function(x) paste(range(x),collapse="-"))
   groups <- groups[!(ranges%in%file_nums)]
@@ -137,36 +121,12 @@ for(i in 1:length(files)){
   }
   out <- mclapply(groups,ap_fun,mc.cores= n.cores,mc.silent = TRUE)
 }
-#
 
-file_list <- list.files(pattern="\\.rds",path= "3_Output")
+### read the snippets and compile
+file_list <- list.files(pattern="\\.rds",path= "Output")
 read_RDS <- function(x) {
-  a <- readRDS(paste0("3_Output/",x))
+  a <- readRDS(paste0("Output/",x))
   a$domain <- gsub("hit_analysis_[[:digit:]]+-[[:digit:]]+||_domain_|R|-|.csv.rds","",x)
   return(a)
 }
-
-file_list <- list.files(pattern="\\.rds",path= "3_Output")
-
-###
-b <- ldply(file_list,read_RDS)
-write.csv(b,"runs_output_10.10.17.csv",row.names= F)
-
-
-b <- read.csv("runs_output_1")
-# ggplot(aes(factor(species),abs(exp(leffect)-(1-severity))/(1-severity),
-#            colour= factor(ifelse(species%in%c(16:24),1,0))),alpha= 0.5,data=b)+
-#   geom_boxplot()+
-#   facet_grid(~severity)+
-#   geom_hline(yintercept= 0.4)+
-#   coord_cartesian(ylim= c(0,1))+
-#   theme_bw()
-# 
-# ggplot(aes(imp_cv,as.numeric(baci_xs_p<0.05)),data=b)+
-#   geom_point()+
-#   facet_grid(~severity)+
-#   geom_hline(yintercept= 0.4)+
-#   ylim(0,1)+
-#   theme_bw()+
-#   stat_smooth(method= "gam",
-#                   method.args= list(family= "binomial"))
+runs_full <- ldply(file_list,read_RDS)
