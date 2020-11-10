@@ -23,6 +23,7 @@ library("gridExtra")
 library("MBA")
 library("fields")
 library("cowplot")
+library("glmmTMB")
 
 ### read in raw output and summaries
 ### download the large file from google drive link below
@@ -225,7 +226,7 @@ errorplot <- ggplot(aes(x= as.numeric(as.character(domain)),
 plot_grid(heatmap,errorplot,ncol= 1,align= "v",axis= "lr")
 #dev.off()
 
-plot_groups <- read.csv("~/Dropbox/DanO_DOI_Partnership/DOI_Impacts/3_Output/runs_output_groups.csv")
+plot_groups <- read.csv("Output/output_grouped.csv")
 plot_groups <- plot_groups%>%
   mutate(incl= 0.15)%>%
   filter(severity!= "4x impact")
@@ -270,7 +271,6 @@ plot_dat <- join(plot_dat,inf_rank)%>%
          binomial= as.character(binomial))%>%
   mutate(taxa_name= ifelse(taxa_name%in%c("all algae","all mobile Inverts","all fish","all sessile inverts"),taxa_name,binomial))
 
-levels(plo)
 orders <- unique(plot_dat[,c("taxa_name","rank")])%>%
          mutate(rank= ifelse(is.na(rank),row_number(),rank))%>%
   arrange(rank)
@@ -391,38 +391,15 @@ plot_grid(plot3,plot2,plot1,align= "v",ncol=1,rel_heights = c(0.5,0.8,1))
 #dev.off()
 
 #### impact radius versus impacted sites and data sufficiency
-plot_dat2 <-out_sum%>%
-  filter(severity==0&domain%in%c("quart","quart_shuffle"))%>%
-  mutate(domain= ifelse(domain=="quart","aggregated","isolated"))
-
-plot_dat3 <-out_sum%>%
-  filter(severity%in%c(0.8,0)&domain%in%c("quart","quart_shuffle"))%>%
+plot_AR_data <-out_sum%>%
+  filter(severity%in%c(0)&domain%in%c("quart","quart_shuffle"))%>%
   mutate(domain= ifelse(domain=="quart","aggregated","isolated"))
            
 binomial_smooth <- function(...) {
   geom_smooth(method = "glm", method.args = list(family = "binomial"), ...)
 }
 
-plot_AR <- ggplot(aes(ctl_acf,((1-exp(-log_est))-(1-severity))/(1-severity)),data= plot_dat3)+
-  geom_point(aes(y= ((1-exp(-log_est))-(1-severity))/(1-severity),colour= "AR(1) error model"))+
-  geom_point(aes(y= ((1-exp(-log_est2))-(1-severity))/(1-severity),colour="white noise error model"))+
-  stat_smooth(se=F,aes(colour="white noise error model"))+
-  stat_smooth(aes(y=((1-exp(-log_est2))-(1-severity))/(1-severity),colour= "AR(1) error model"),se= F)+
-  xlab("partial autocorrelation function")+
-  ylab("false positives")+
-  facet_wrap(severity~domain)+
-  scale_colour_manual(values= c("grey","black"))+
-  theme(legend.title=element_blank(),
-        legend.position= c(0.2,0.85),
-        panel.grid= element_blank(),
-        plot.background= element_blank(),
-        panel.background= element_rect(colour= "black",fill= "white"),
-        legend.key= element_blank(),
-        strip.background=element_blank(),
-        legend.background= element_blank())+
-  scale_y_continuous(limits= c(0,0.6),expand= c(0,0))
-
-plot_AR <- ggplot(aes(ctl_acf,ps2+pp2),data= plot_dat2)+
+plot_AR <- ggplot(aes(ctl_acf,ps2+pp2),data= plot_AR_data)+
   geom_point(aes(y= ps+pp,colour= "AR(1) error model"))+
   geom_point(aes(y= ps2+pp2,colour="white noise error model"))+
   binomial_smooth(se=F,aes(colour="white noise error model",weight=n))+
@@ -448,23 +425,33 @@ plot_AR
 #### Type II error against control cv and pre-impact spatial variation
 out_sum <- out_sum%>%
   mutate(n_prop= I((ctl_n+imp_n)/23))
+
 sub <- subset(out_sum, incl==0.15&domain=="quart"&severity=="0.8")
 sub2 <- subset(out_sum, incl==0.15&domain=="quart"&severity=="0")
-fit <- glm((ps)~ctl_cv+n_prop+sv_pre+ctl_acf,data= sub%>%data.frame(),family = binomial(link= 'logit'), weights= n)
-fit2 <- glm((ps)~ctl_cv+n_prop+sv_pre+ctl_acf,data= sub2%>%data.frame(),family = binomial(link= 'logit'), weights= n)
+
+### generate trendlines for the variables (not standardized!)
+fit <- glmmTMB((ps)~ctl_cv+n_prop+sv_pre+ctl_acf+ctl_n_years,
+               data= sub%>%data.frame(),family = betabinomial(link= 'logit'), weights= n)
+fit2 <- glmmTMB((ps)~ctl_cv+n_prop+sv_pre+ctl_acf+ctl_n_years,
+                data= sub2%>%data.frame(),family = betabinomial(link= 'logit'), weights= n)
 
 sub1a <- sub%>%
   data.frame()%>%
   mutate(n_prop= mean(n_prop,na.rm=T),
          sv_pre= mean(sv_pre,na.rm=T),
+         ctl_n_years = mean(ctl_n_years),
+         ctl_cv = ctl_cv,
          group2= "CV",
          ctl_resp = ctl_cv)  
+
 sub1a$pred <- predict(fit,newdata= sub1a,type= "response")
 
 sub1b <- sub%>%
   data.frame()%>%
   mutate(ctl_cv= mean(ctl_cv,na.rm=T),
          sv_pre= mean(sv_pre,na.rm=T),
+         ctl_n_years = mean(ctl_n_years,na.rm=T),
+         ctl_cv = mean(ctl_cv,na.rm=T),
          group2= "n",
          ctl_resp = n_prop)  
 sub1b$pred <- predict(fit,newdata= sub1b,type= "response")
@@ -473,6 +460,8 @@ sub1c <- sub%>%
   data.frame()%>%
   mutate(ctl_cv= mean(ctl_cv,na.rm=T),
          n_prop= mean(n_prop,na.rm=T),
+         ctl_n_years = mean(ctl_n_years,na.rm=T),
+         ctl_cv = mean(ctl_cv,na.rm=T),
          group2= "sv",
          ctl_resp = sv_pre)  
 sub1c$pred <- predict(fit,newdata= sub1c,type= "response")
@@ -483,6 +472,8 @@ sub1a <- sub2%>%
   data.frame()%>%
   mutate(n_prop= mean(n_prop,na.rm=T),
          sv_pre= mean(sv_pre,na.rm=T),
+         ctl_n_years = mean(ctl_n_years,na.rm=T),
+         ctl_cv = ctl_cv,na.rm=T,
          group2= "CV",
          ctl_resp = ctl_cv)  
 sub1a$pred <- predict(fit2,newdata= sub1a,type= "response")
@@ -491,6 +482,8 @@ sub1b <- sub2%>%
   data.frame()%>%
   mutate(ctl_cv= mean(ctl_cv,na.rm=T),
          sv_pre= mean(sv_pre,na.rm=T),
+         ctl_n_years = mean(ctl_n_years,na.rm=T),
+         ctl_cv = mean(ctl_cv,na.rm=T),
          group2= "n",
          ctl_resp = n_prop)  
 sub1b$pred <- predict(fit2,newdata= sub1b,type= "response")
@@ -499,6 +492,8 @@ sub1c <- sub2%>%
   data.frame()%>%
   mutate(ctl_cv= mean(ctl_cv,na.rm=T),
          n_prop= mean(n_prop,na.rm=T),
+         ctl_n_years = mean(ctl_n_years,na.rm=T),
+         ctl_cv = mean(ctl_cv,na.rm=T),
          group2= "sv",
          ctl_resp = sv_pre)  
 sub1c$pred <- predict(fit2,newdata= sub1c,type= "response")
@@ -517,6 +512,7 @@ table_data <- subset(out_sum, incl==0.15&domain=="quart"&severity%in%c("0","0.8"
 #write.csv(table_data,"~/Dropbox/DanO_DOI_partnership/DOI_Impacts/4_Figures/Figure_5_Table.csv",row.names= F)
 
 sub6$group2 <- factor(sub6$group2,levels= c("n","CV","sv"))
+sub6$taxa_group <- factor(sub6$taxa_group)
 levels(sub6$taxa_group)[3] <- "mobile invert"
 p1 <- ggplot(aes(ctl_resp,y= ps),data=sub6)+
       binomial_smooth(aes(weight= n),colour= "black",se= F)+
@@ -535,58 +531,11 @@ p1 <- ggplot(aes(ctl_resp,y= ps),data=sub6)+
             plot.background= element_blank(),
             legend.key= element_blank())+
       scale_fill_manual(values= c("#1b9e77","#7570b3","black","#d95f02"))+
-      scale_shape_manual(values= c(21,25,8,23));p1
+      scale_shape_manual(values= c(21,25,8,23))
     
 #pdf(width= 6,height= 4,file="4_Figures/Figure_6.pdf")
 p1
 #dev.off()
-    
-sub <- subset(out_sum, incl==0.15&domain=="quart"&severity=="0.8")
-fit <- glm((ps)~ctl_cv+sv_pre+ctl_acf,data= sub%>%data.frame(),family = binomial(link= 'logit'), weights= n)
-
-sub2 <- sub%>%
-  data.frame()%>%
-  mutate(ctl_cv = mean(ctl_cv,na.rm=T),
-         ctl_acf= mean(ctl_acf,na.rm=T),
-         group2= "SV",
-         ctl_resp =sv_pre)
-
-sub2$pred <- predict(fit,newdata= sub2,type= "response")
-
-sub3 <- sub%>%
-  data.frame()%>%
-  mutate(sv_pre= mean(sv_pre,na.rm=T),
-         ctl_acf= mean(ctl_acf,na.rm=T),
-         group2= "CV",
-         ctl_resp = ctl_cv)  
-sub3$pred <- predict(fit,newdata= sub3,type= "response")
-
-sub4 <- sub%>%
-  data.frame()%>%
-  mutate(sv_pre= mean(sv_pre,na.rm=T),
-         ctl_cv= mean(ctl_cv,na.rm=T),
-         group2= "ACF",
-         ctl_resp = ctl_acf)  
-sub4$pred <- predict(fit,newdata= sub4,type= "response")
-
-sub5 <- rbind_all(list(sub2,sub3,sub4))
-
-p2 <- ggplot(aes(ctl_resp,ps+pp),data=sub5)+
-      binomial_smooth(aes(weight= n),colour= "black")+
-      facet_wrap(~group2,scales= "free_x")+
-      geom_point(aes(y= (ps+pp),shape= group,fill= group))+
-      ylab("Type II Error")+
-      xlab("Mean Pre-Impact Autocorrelation          Mean Control Coefficient of Variation          Mean Pre-Impact    Spatial Variation")+
-      theme_bw()+
-      theme(panel.grid= element_blank(),
-            strip.background=element_blank(),
-            strip.text= element_blank(),
-            panel.background= element_rect(fill= NA),
-            legend.title= element_blank(),
-            legend.position= "top")+
-      #scale_y_continuous(limits= c(0,0.25))+
-      scale_fill_manual(values= c("grey60","black"))+
-      scale_shape_manual(values= c(21,24));p2
 
 #### type II vs type I error rates
 
@@ -627,7 +576,7 @@ Pwr_vs_FP <- ggplot(data= test,aes(1-tn,tp))+
         legend.direction= "horizontal",
         legend.position= c(0.3,0.8),
         legend.key.width= unit(0.8,"cm"))+
-  scale_colour_gradientn(colors= rainbow(20),name= "Informedness");Pwr_vs_FP
+  scale_colour_gradientn(colors= rainbow(20),name= "Informedness")
 
 #pdf(width= 5,height= 4.5,file="4_Figures/Figure_7.pdf")
 Pwr_vs_FP
@@ -654,9 +603,9 @@ inf_plot <- ggplot(aes(rank,YJ,colour= order),data= inf_data)+
         strip.background=element_blank(),
         panel.background= element_blank(),
         plot.background= element_blank(),
-        panel.border= element_rect(colour= "black",fill=NA));inf_plot
+        panel.border= element_rect(colour= "black",fill=NA))
 
 #pdf(width= 5,height= 5,file="4_Figures/Figure_8.pdf")
-#inf_plot
+inf_plot
 #dev.off()
 

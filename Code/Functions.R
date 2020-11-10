@@ -1,14 +1,3 @@
-###########################################################
-###  Code for Rassweiler et al. (2021) Ecol. Appl. 
-###  Authors: D.K. Okamoto, A. Rassweiler
-###  Last Updated: May, 2018 (commented Nov. 2020)  
-###  
-###  
-###  **CAUTION: code is not designed for efficiency or for
-###  other applications, but for this paper alone!**
-###########################################################
-
-###  Code provided here is for generic Functions ---- 
 
 ### convert rows to list
 rows.to.list <- function( df ) {
@@ -30,9 +19,45 @@ withWarnings <- function (expr)
   list(Value = retval, Warnings = warnings) 
 } 
 
-### ungrouped function ---- 
+### Impact and statistical model functions ---
+### Returns output with the following variables: 
+# coef2_p = p-value associated with BACI coefficient w/ AR(1)
+# coef3_p = p-value associated with BACI coefficient w/o AR(1)
+# leffect2 = BACI effect size (AR(1))
+# leffect2_se = se of BACI effect size (AR(1))
+# leffect2 = BACI effect size (w/o AR(1))
+# leffect2_se = se of BACI effect size (w/o AR(1))
+# baci_p2 =  p-value associated with BACI LR test (AR(1))
+# baci_p3 = p-value associated with BACI LR test (w/o AR(1))
+# species= species ID
+# severity = severity of the impact imposed
+# index = index ID
+# incl= minimum prorportion of sites with positive values
+# ctl_mu= mean control value
+# imp_mu= mean impact value
+# ctl_acf= mean acf of the control sites
+# imp_acf= mean acf of the impact sites
+# ctl_cv= mean CV of the control sites
+# imp_cv= mean CV of the impact sites
+# ctl_sv_pre= spatial variation of the control sites pre-impact
+# imp_sv_pre= spatial variation of the impact sites pre-impact
+# ctl_sv_post= spatial variation of the control sites post-impact
+# imp_sv_post= spatial variation of the impact sites post-impact
+# sv_pre = total spatial variation pre-impact
+# ctl_n = number of control sites with sufficient data
+# imp_n = number of impact sites with sufficient data
+# ctl_ny = mean pre-impact time series length of control sites 
+# ctlp_ny = mean post-impact time series length of control sites 
+# imp_ny = mean pre-impact time series length of impact sites 
+# impp_ny = mean post-impact time series length of impact sites 
+# IY= impact year
+# err = any resulting errors
+# warn2 = warnings for the model with AR(1)
+# warn3 = warnings for the model w/o AR(1) model
+
+
+### ungrouped function 
 hit_fun <- function(x, power= FALSE,plot= FALSE,pred_data= pred_data){
-  
   id_data <- data.frame(t(x))
   IY= sample(1990:2005,1)
   w.list=NA
@@ -384,8 +409,9 @@ hit_fun <- function(x, power= FALSE,plot= FALSE,pred_data= pred_data){
   }
 }
 
-### grouped function ---- 
+### grouped function
 hit_fun_groups <- function(x, power= FALSE,plot= FALSE,pred_data= pred_data){
+  x =id_list[[10000]]
   id_data <- data.frame(t(x))
   IY= sample(1990:2005,1)
   w.list=NA
@@ -426,12 +452,10 @@ hit_fun_groups <- function(x, power= FALSE,plot= FALSE,pred_data= pred_data){
     newprob <- subset(newData,postImpact==1&Impact==1)$count*(1-id_data$severity)
     impdata <- floor(newprob)+sapply(newprob - floor(newprob ),function(x) rbinom(1,1,x))
     
-    ### format data for analysis
     newData <-  newData%>%
       mutate(new_count=ifelse(postImpact==1&Impact==1,impdata,count))%>%
       data.frame()
     
-    ### create IDs for overdispersion and groupings
     newData$INDID <- 1:nrow(newData)
     newData$time <- factor(newData$YEAR)
     newData$SITE <- factor(newData$SITE)
@@ -439,17 +463,14 @@ hit_fun_groups <- function(x, power= FALSE,plot= FALSE,pred_data= pred_data){
     
     fit3 <- tryCatch(
       withWarnings(glmmTMB(new_count~postImpact*Impact+
-                             (0+postImpact*Impact|NEW_CODE)+ar1(time+0|NEW_CODE%in%SITE)+
-                             (1|NEW_CODE:SITE)+ (1|INDID),
+                             (0+postImpact*Impact|NEW_CODE)+(1|NEW_CODE:SITE)+ar1(time+0|NEW_CODE%in%SITE)+(1|INDID),
                            offset= log(totalArea),
                            family= poisson(link= "log"),
                            data= newData)),
       error = function(error) {return(list(Value= NULL,Warnings= error))})
     
     fit4 <- tryCatch(
-      withWarnings(glmmTMB(new_count~  postImpact*Impact+ 
-                             (0+postImpact*Impact|NEW_CODE)+
-                             (1|NEW_CODE:SITE)+(1|INDID),
+      withWarnings(glmmTMB(new_count~  postImpact*Impact+ (0+postImpact*Impact|NEW_CODE)+(1|NEW_CODE:SITE)+(1|INDID),
                            offset= log(totalArea),
                            family= poisson(link= "log"),
                            data= newData)),
